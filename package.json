@@ -1,0 +1,23 @@
+{
+  "name": "nodeJSExperiment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache 2.0",
+  "devDependencies": {
+    "nodemon": "^1.13.3",
+    "serverless": "^1.24.1"
+  },
+  "dependencies": {
+    "aws-serverless-express": "^3.0.2",
+    "axios": "^0.17.1",
+    "body-parser": "^1.18.2",
+    "ejs": "^2.5.7",
+    "express": "^4.16.2"
+  }
+}

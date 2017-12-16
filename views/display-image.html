@@ -1,0 +1,10 @@
+<p>Image URL: <%= (imageID) ? imageID : '' %> </p>
+ 
+<table>
+   <% metadata.forEach(function(field){ %>
+   <tr>
+       <th><%= field.label %></th>
+       <td><%= field.value %></td>
+   </tr>
+   <% }); %>
+</table>
