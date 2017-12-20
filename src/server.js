@@ -46,7 +46,12 @@ app.get('/', (req, res) => {
 });
  
 app.post('/submit', async (req, res) => {
-	const image = await Image.getImage(req.body.collectionID, req.body.objectID);
+	const { URL } = require('url');
+	const objectURL = await new URL(req.body.url);
+	const pathParts = objectURL.pathname.split("/");
+	const collectionID = pathParts[3];
+	const objectID = pathParts[5];
+	const image = await Image.getImage(collectionID, objectID);
     res.render('display-image', { metadata: image.getMetadata(), imageID: image.getImageID() });
 });
 
