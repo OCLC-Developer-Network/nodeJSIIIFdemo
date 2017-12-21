@@ -56,6 +56,4 @@ app.post('/submit', async (req, res) => {
 });
 
 //Server
-app.listen(port, () => {
-   console.log(`Listening on: http://localhost:${port}`);
-});
+module.exports = app;
