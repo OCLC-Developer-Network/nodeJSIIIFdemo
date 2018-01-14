@@ -8,16 +8,6 @@ class Image {
 		this.imageID = this.manifest.sequences[0].canvases[0].images[0].resource.service['@id'];
 		this.metadata = this.manifest.metadata;
     }
-    static async getImage(collectionID, objectID) {
-    	const url = 'https://sandbox.contentdm.oclc.org/digital/iiif-info/' + collectionID + '/' + objectID;
-		  try {
-		    const response = await axios.get(url);
-		    const data = await response.data;
-		    return await new Image(data);
-		  } catch (error) {
-		    console.log(error);
-		  }
-    }
 
     getImageID(){
     	return this.imageID;
@@ -34,6 +24,8 @@ const baseUrl = `http://localhost:${port}`;
  
 const bodyParser = require('body-parser');
 
+const isLambda = !!(process.env.LAMBDA_TASK_ROOT || false);
+
 app.engine('html', require('ejs').renderFile);
 app.set('view engine', 'html');
 app.set('views', 'views');
@@ -41,18 +33,32 @@ app.set('views', 'views');
  
 app.use(bodyParser.urlencoded({ extended: true }));
  
-app.get('/', (req, res) => {
-   res.render('index');
+app.get('/', (req, res) => {   
+   if (isLambda) {
+	   var action = "production/submit";
+   } else {
+		 var action = "submit";
+   }
+   
+   res.render('index', {action: action});
 });
  
-app.post('/submit', async (req, res) => {
-	const { URL } = require('url');
-	const objectURL = await new URL(req.body.url);
+app.post('/submit', (req, res) => {
+	const URL = require('url');
+	const objectURL = URL.parse(req.body.url);
 	const pathParts = objectURL.pathname.split("/");
+	
 	const collectionID = pathParts[3];
 	const objectID = pathParts[5];
-	const image = await Image.getImage(collectionID, objectID);
-    res.render('display-image', { metadata: image.getMetadata(), imageID: image.getImageID() });
+	const url = 'https://sandbox.contentdm.oclc.org/digital/iiif-info/' + collectionID + '/' + objectID;
+	axios.get(url)
+		.then(response => {
+	    	var image = new Image(response.data);
+	    	res.render('display-image', { metadata: image.getMetadata(), imageID: image.getImageID() });
+	    })
+    	.catch (error => {
+    		console.log(error);
+    	})
 });
 
 //Server
