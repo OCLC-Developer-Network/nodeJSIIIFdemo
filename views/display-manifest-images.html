@@ -1,0 +1,7 @@
+<h2 style="text-align:center"><%= name %></h2>
+<p>Description: <%= description %></p> 
+<div class="row">
+   <% images.forEach(function(image){ %>
+   <div class="column"><span id="<%= image.url %>"><img src="<%= image.url %>/full/300,/0/default.jpg" alt="<%= image.label %>" class="hover-shadow-cursor"/></span></div>
+   <% }); %>
+</div>
