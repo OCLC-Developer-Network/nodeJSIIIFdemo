@@ -8,8 +8,8 @@ var dynamodb = require('aws-sdk/clients/dynamodb');
 const axios = require("axios");
 class Image {
     constructor(data) {
-    	this.id = this.manifest['@id'];
 	    this.manifest = data;
+    	this.id = this.manifest['@id'];
 		this.imageID = this.manifest.sequences[0].canvases[0].images[0].resource.service['@id'];
 		this.metadata = this.manifest.metadata;
 		this.label = this.manifest.label;
@@ -132,9 +132,10 @@ app.post('/manifest', (req, res) => {
 				var params = {
 					    TableName: "Manifest",
 					    Key: {ManifestID: id},
-					    UpdateExpression: "add images :i",
+					    UpdateExpression: "SET #attrName = list_append(#attrName, :i)",
+					    ExpressionAttributeNames: {"#attrName" : "Images"},
 					    ExpressionAttributeValues:{
-					        ":i": {label: image.getLabel(), url: image.getImageService(), info_url: image.getID()}
+					        ":i": [{label: image.getLabel(), url: image.getImageID(), info_url: image.getID()}]
 					    },
 					    ReturnValues:"UPDATED_NEW"
 					};
@@ -142,7 +143,7 @@ app.post('/manifest', (req, res) => {
 				    if (err) {
 				        console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
 				    } else {
-				        console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+				    	res.redirect('/manifest/' + id);
 				    }
 				});
 		    })
