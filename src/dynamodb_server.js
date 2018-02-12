@@ -6,52 +6,8 @@ const uuidv1 = require('uuid/v1');
 var dynamodb = require('aws-sdk/clients/dynamodb');
 
 const axios = require("axios");
-class Image {
-    constructor(data) {
-	    this.manifest = data;
-    	this.id = this.manifest['@id'];
-		this.imageID = this.manifest.sequences[0].canvases[0].images[0].resource.service['@id'];
-		this.metadata = this.manifest.metadata;
-		this.label = this.manifest.label;
-    }
-    
-    getID(){
-    	return this.id;
-    }
-    
-    getLabel(){
-    	return this.label;
-    }
-
-    getImageID(){
-    	return this.imageID;
-    }
-    
-    getMetadata(){
-    	return this.metadata;
-    }
-}
-
-class Manifest {
-    constructor(data) {
-    	this.id = data.ManifestID;
-    	this.name = data.ManifestName;
-    	this.description = data.Description;
-    	this.images = data.Images;
-    }
-    
-    getName() {
-    	return this.name;
-    }
-    
-    getDescription() {
-    	return this.description;
-    }
-    
-    getImages() {
-    	return this.images;
-    }
-}
+let Image = require("./image.js")
+let Manifest = require("./manifest.js")
 
 function getInfoURL(requestURL) {
 		const URL = require('url');
@@ -162,7 +118,6 @@ app.post('/create-manifest', (req, res) => {
 		.then(response => {
 	    	var image = new Image(response.data);
 	    	var id = uuidv1();
-	    	console.log(id);
 	    	
 	    	//create JSON with the collection name and the first url
 	    	var collection = {
