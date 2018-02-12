@@ -1,8 +1,79 @@
 "use strict";
 const express = require('express');
 const app = express();
+const uuidv1 = require('uuid/v1');
 
 var dynamodb = require('aws-sdk/clients/dynamodb');
+
+const axios = require("axios");
+class Image {
+    constructor(data) {
+    	this.id = this.manifest['@id'];
+	    this.manifest = data;
+		this.imageID = this.manifest.sequences[0].canvases[0].images[0].resource.service['@id'];
+		this.metadata = this.manifest.metadata;
+		this.label = this.manifest.label;
+    }
+    
+    getID(){
+    	return this.id;
+    }
+    
+    getLabel(){
+    	return this.label;
+    }
+
+    getImageID(){
+    	return this.imageID;
+    }
+    
+    getMetadata(){
+    	return this.metadata;
+    }
+}
+
+class Manifest {
+    constructor(data) {
+    	this.id = data.ManifestID;
+    	this.name = data.ManifestName;
+    	this.description = data.Description;
+    	this.images = data.Images;
+    }
+    
+    getName() {
+    	return this.name;
+    }
+    
+    getDescription() {
+    	return this.description;
+    }
+    
+    getImages() {
+    	return this.images;
+    }
+}
+
+function getInfoURL(requestURL) {
+		const URL = require('url');
+		const objectURL = URL.parse(requestURL);
+		const pathParts = objectURL.pathname.split("/");
+		
+		const collectionID = pathParts[3];
+		const objectID = pathParts[5];
+		const url = 'https://sandbox.contentdm.oclc.org/digital/iiif-info/' + collectionID + '/' + objectID;
+		return url;
+}
+
+function getImageServiceURL(requestURL) {
+	const URL = require('url');
+	const objectURL = URL.parse(requestURL);
+	const pathParts = objectURL.pathname.split("/");
+	
+	const collectionID = pathParts[3];
+	const objectID = pathParts[5];
+	const url = 'https://sandbox.contentdm.oclc.org/digital/iiif/' + collectionID + '/' + objectID;
+	return url;
+}
 
 const dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
  
@@ -23,9 +94,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
  
 app.get('/', (req, res) => {   
    if (isLambda) {
-	   var action = "production/collection";
+	   var action = "production/manifest";
    } else {
-	   var action = "collection";
+	   var action = "manifest";
    }
    
    var params = {
@@ -37,7 +108,6 @@ app.get('/', (req, res) => {
 	   if (err) {
 		   console.log("Error", err);
 	   } else {
-		   console.log(data.Items);
 		   // show the collection info
 		   res.render('index', {action: action, manifests: data.Items});
 	   }
@@ -45,56 +115,126 @@ app.get('/', (req, res) => {
    
 });
 
-app.get('/collection', (req, res) => {
-	if (req.query.id !== 'new'){
-		res.redirect('/collection/' + req.query.id + '?url=' + req.query.url);
-	} else {
+app.post('/manifest', (req, res) => {
+	if (req.body.id == 'new'){
 		if (isLambda) {
-		   var action = "production/collection";
+		   var action = "production/create-manifest";
 		} else {
-		   var action = "collection";
+		   var action = "create-manifest";
 		}
-		res.render('create-manifest', {action: action, url: req.query.url});
+		res.render('create-manifest', {action: action, url: req.body.url});
+	} else {
+		var url = getInfoURL(req.body.url);
+		axios.get(url)
+			.then(response => {
+		    	var image = new Image(response.data);
+		    	var id = req.body.id;
+				var params = {
+					    TableName: "Manifest",
+					    Key: {ManifestID: id},
+					    UpdateExpression: "add images :i",
+					    ExpressionAttributeValues:{
+					        ":i": {label: image.getLabel(), url: image.getImageService(), info_url: image.getID()}
+					    },
+					    ReturnValues:"UPDATED_NEW"
+					};
+				dynamodb_doc.update(params, function(err, data) {
+				    if (err) {
+				        console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
+				    } else {
+				        console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+				    }
+				});
+		    })
+	    	.catch (error => {
+	    		console.log(error);
+	    })
 	}
 });
 
-app.post('/collection', (req, res) => {
-	const URL = require('url');
-	const objectURL = URL.parse(req.body.url);
-	const pathParts = objectURL.pathname.split("/");
-	
-	const collectionID = pathParts[3];
-	const objectID = pathParts[5];
-	const url = 'https://sandbox.contentdm.oclc.org/digital/iiif-info/' + collectionID + '/' + objectID;
-	
+app.post('/create-manifest', (req, res) => {	
+	var url = getInfoURL(req.body.url);
 	var name = req.body.name;
 	var description = req.body.description;
-	//create JSON with the collection name and the first url
-//	var collection = {
-//			  TableName: 'Manifest',
-//			  Item: {
-//			    'ManifestID': VALUE,
-//			    'Name': name,
-//			    'Images': [
-//			    	{
-//			    		'lable': label,
-//			    		'url': url
-//			    	}
-//			    	]
-//			    }
-//			  }
-//			};
-	dynamodb_doc.put(collection, function(err, data) {
-		  if (err) {
-			console.log("Error", err);
-		  } else {
-			  // show the collection created
-		    console.log("Success", data);
-		  }
+	
+	axios.get(url)
+		.then(response => {
+	    	var image = new Image(response.data);
+	    	var id = uuidv1();
+	    	console.log(id);
+	    	
+	    	//create JSON with the collection name and the first url
+	    	var collection = {
+	    			  TableName: 'Manifest',
+	    			  Item: {
+	    			    'ManifestID': id,
+	    			    'ManifestName': name,
+	        			'Description': description,	
+	    			    'Images': [
+	    			    	{
+	    			    		'label': image.getLabel(),
+	    			    		'url': image.getImageID(),
+	    			    		'id': image.getID()
+	    			    	}
+	    			    	]
+	    			    }
+	    			};
+	    	dynamodb_doc.put(collection, function(err, data) {
+	    		  if (err) {
+	    			console.log("Error", err);
+	    		  } else {
+	    			  res.redirect('/manifest/' + id);
+	    		  }
+	    	});
+	    	
+	    })
+		.catch (error => {
+			console.log(error);
+	})
+});
+
+app.get('/manifest/:id', (req, res) => {
+	var id = req.params['id'];
+	//retrieve the collection
+	var params = {
+	 TableName: 'Manifest',
+	 Key: {ManifestID: id}
+	};
+
+	// Call DynamoDB to read the item from the table
+	dynamodb_doc.get(params, function(err, data) {
+	  if (err) {
+	    console.log("Error", err);
+	  } else {
+		// show the collection info
+		var manifest = new Manifest(data.Item);
+	    res.render('display-manifest', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});
+	  }
 	});
 });
 
-app.get('/collection/:id', (req, res) => {
+app.get('/manifest/:id/view', (req, res) => {
+	var id = req.params['id'];
+	//retrieve the collection
+	var params = {
+	 TableName: 'Manifest',
+	 Key: {ManifestID: id}
+	};
+
+	// Call DynamoDB to read the item from the table
+	dynamodb_doc.get(params, function(err, data) {
+	  if (err) {
+	    console.log("Error", err);
+	  } else {
+		// show the collection info
+		var manifest = new Manifest(data.Item);  
+		res.render('display-manifest-images', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});		  
+	  }
+	});
+});
+
+app.get('/manifest/:id/data', (req, res) => {
+	// render the manifest itself
 	var id = parseInt(req.params['id']);
 	//retrieve the collection
 	var params = {
@@ -108,28 +248,8 @@ app.get('/collection/:id', (req, res) => {
 	    console.log("Error", err);
 	  } else {
 		// show the collection info
-	    res.render('display-manifest', {name: data.Item.ManifestName, description: data.Item.Description, images: data.Item.Images});
-	  }
-	});
-});
-
-app.put('/collection/{id}', (req, res) => {
-	const URL = require('url');
-	const objectURL = URL.parse(req.body.url);
-	const pathParts = objectURL.pathname.split("/");
-	
-	const collectionID = pathParts[3];
-	const objectID = pathParts[5];
-	const url = 'https://sandbox.contentdm.oclc.org/digital/iiif-info/' + collectionID + '/' + objectID;
-	
-	//update JSON with the collection name and the new url
-	
-
-	dynamodb_doc.put(params, function(err, data) {
-	  if (err) {
-	    console.log("Error", err);
-	  } else {
-	    console.log("Success", data);
+		var manifest = new Manifest(data.Item); 
+		res.render('display-manifest-images', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});
 	  }
 	});
 });
