@@ -1,3 +1,4 @@
+<%- include('header.html') -%>
 <form action="<%= action %>" method="POST">
     <p><label>URL:</label> <input type="text" name="url" /></p>
     <p><label>Manifest: </label><select name="id">
@@ -9,3 +10,4 @@
     </p>
     <input type="submit" value="Add" />
 </form>
+<%- include('footer.html') -%>
