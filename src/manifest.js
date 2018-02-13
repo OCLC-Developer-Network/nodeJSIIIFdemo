@@ -6,6 +6,10 @@ module.exports = class Manifest {
     	this.images = data.Images;
     }
     
+    getID() {
+    	return this.id;
+    }
+    
     getName() {
     	return this.name;
     }

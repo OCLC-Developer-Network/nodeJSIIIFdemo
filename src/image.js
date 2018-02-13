@@ -1,10 +1,12 @@
 module.exports = class Image {
     constructor(data) {
 	    this.manifest = data;
-    	this.id = this.manifest['@id'];
+    	this.id = this.manifest['@id'].substring(0, this.manifest['@id'].lastIndexOf('/'));
 		this.imageID = this.manifest.sequences[0].canvases[0].images[0].resource.service['@id'];
 		this.metadata = this.manifest.metadata;
 		this.label = this.manifest.label;
+		this.height = this.manifest.sequences[0].canvases[0].height;
+		this.width = this.manifest.sequences[0].canvases[0].width;
     }
     
     getID(){
@@ -21,5 +23,13 @@ module.exports = class Image {
     
     getMetadata(){
     	return this.metadata;
+    }
+    
+    getHeight(){
+    	return this.height;
+    }
+    
+    getWidth(){
+    	return this.width;
     }
 };
