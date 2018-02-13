@@ -1,5 +1,19 @@
 <%- include('header.html') -%>
 <script type="application/javascript">
+function addPaging(id) {
+    $("#paging").empty();
+    var next = Number(id) + 1;
+    var prev = Number(id) - 1;
+    var paging = '';
+
+    if (id > 1){
+        paging += '<a class="prev" id="' + prev + '">&#10094;</a>';
+    }
+    if (id < <%= images.length %>){
+        paging += '<a class="next" id="' + next + '">&#10095;</a>';
+    }
+   $('#paging').append(paging);
+}
 
 $(document).ready(function(){
     
@@ -8,13 +22,14 @@ $(document).ready(function(){
          event.preventDefault();
          // create a lightbox
          var id = $(this).attr('id');
-         var img = '<div class="numbertext">' + id + ' / 4</div>';
+         var img = '<div class="numbertext">' + id + ' / <%= images.length %></div>';
          img += '<img src="' + $(this).parent().attr('id') + '/full/1000,/0/default.jpg" style="width:100%"/>';
          var caption = $(this).attr('alt');
          
          $('#photo_popup').css("display", "block");
          $('#mySlide').css("display", "block");
          $('#mySlide').append(img);
+         addPaging(id);
          
          $('#caption').append(caption);
      });
@@ -23,7 +38,46 @@ $(document).ready(function(){
         $('#photo_popup').css("display", "none");
         $("#mySlide").empty();
         $("#caption").empty();
-    });    
+        $("#paging").empty();
+    });
+
+    $(document.body).on('click', '.prev', function(event) {
+        event.preventDefault();
+        var id = $(this).attr('id');
+        $("#mySlide").empty();
+        $("#caption").empty();
+         
+         // create a lightbox
+         var img = '<div class="numbertext">' + id + ' / 4</div>';
+         img += '<img src="' + $("#" + id).parent().attr('id') + '/full/1000,/0/default.jpg" style="width:100%"/>';
+         var caption = $("#" + id).attr('alt');
+         
+         $('#photo_popup').css("display", "block");
+         $('#mySlide').css("display", "block");
+         $('#mySlide').append(img);
+         addPaging(id);
+         
+         $('#caption').append(caption);
+     });
+    
+    $(document.body).on('click', '.next', function(event) {
+       event.preventDefault();
+       var id = $(this).attr('id');
+       $("#mySlide").empty();
+       $("#caption").empty();
+        
+        // create a lightbox
+        var img = '<div class="numbertext">' + id + ' / 4</div>';
+        img += '<img src="' + $("#" + id).parent().attr('id') + '/full/1000,/0/default.jpg" style="width:100%"/>';
+        var caption = $("#" + id).attr('alt');
+        
+        $('#photo_popup').css("display", "block");
+        $('#mySlide').css("display", "block");
+        $('#mySlide').append(img);
+        addPaging(id);
+        
+        $('#caption').append(caption);
+    });   
 });
 </script>
 <div id="images">

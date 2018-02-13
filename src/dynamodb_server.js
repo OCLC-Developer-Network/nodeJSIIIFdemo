@@ -3,11 +3,11 @@ const express = require('express');
 const app = express();
 const uuidv1 = require('uuid/v1');
 
-var dynamodb = require('aws-sdk/clients/dynamodb');
+const dynamodb = require('aws-sdk/clients/dynamodb');
 
 const axios = require("axios");
-let Image = require("./image.js")
-let Manifest = require("./manifest.js")
+const Image = require("./image.js")
+const Manifest = require("./manifest.js")
 
 function getInfoURL(requestURL) {
 		const URL = require('url');
