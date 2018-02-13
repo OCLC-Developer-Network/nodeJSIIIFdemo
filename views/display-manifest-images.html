@@ -1,7 +1,50 @@
-<h2 style="text-align:center"><%= name %></h2>
-<p>Description: <%= description %></p> 
-<div class="row">
-   <% images.forEach(function(image){ %>
-   <div class="column"><span id="<%= image.url %>"><img src="<%= image.url %>/full/300,/0/default.jpg" alt="<%= image.label %>" class="hover-shadow-cursor"/></span></div>
-   <% }); %>
+<%- include('header.html') -%>
+<script type="application/javascript">
+
+$(document).ready(function(){
+    
+    $(document.body).on('click', '.hover-shadow-cursor', function(event) {
+         
+         event.preventDefault();
+         // create a lightbox
+         var id = $(this).attr('id');
+         var img = '<div class="numbertext">' + id + ' / 4</div>';
+         img += '<img src="' + $(this).parent().attr('id') + '/full/1000,/0/default.jpg" style="width:100%"/>';
+         var caption = $(this).attr('alt');
+         
+         $('#photo_popup').css("display", "block");
+         $('#mySlide').css("display", "block");
+         $('#mySlide').append(img);
+         
+         $('#caption').append(caption);
+     });
+    
+    $(document.body).on('click', '.close', function(event) {
+        $('#photo_popup').css("display", "none");
+        $("#mySlide").empty();
+        $("#caption").empty();
+    });    
+});
+</script>
+<div id="images">
+	<h2 style="text-align:center"><%= name %></h2>
+	<p>Description: <%= description %></p> 
+	<div class="row">
+	   <% images.forEach(function(image,index){ %>
+	   <div class="column"><span id="<%= image.url %>"><img src="<%= image.url %>/full/300,/0/default.jpg" alt="<%= image.label %>" class="hover-shadow-cursor" id="<%= index + 1 %>"/></span></div>
+	   <% }); %>
+	</div>
 </div>
+<div id="photo_popup" class="modal">
+<span class="close cursor">&times;</span>
+<div class="modal-content">
+    <div id="mySlide"></div>
+    <div id="paging">
+    </div>
+
+    <div class="caption-container">
+      <p id="caption"></p>
+    </div>
+</div>
+</div>
+<%- include('footer.html') -%>
