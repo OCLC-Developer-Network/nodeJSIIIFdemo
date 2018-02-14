@@ -1,4 +1,4 @@
-let app = require('./src/dynamodb_server.js');
+let app = require('./src/server.js');
 let port = process.env.PORT || 8000;
 
 // Server
