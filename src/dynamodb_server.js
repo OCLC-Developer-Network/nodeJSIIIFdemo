@@ -31,37 +31,6 @@ function getImageServiceURL(requestURL) {
 	return url;
 }
 
-function getCanvas(image, index, manifestID) {
-    var canvas = {
-        "height": image.height,
-        "images": [
-          {
-            "motivation": "sc:painting",
-            "on": "https://localhost:8000/manifest/" + manifestID + "/data/canvas/c" + index,
-            "resource": {
-              "format": "image/jpeg",
-              "service": {
-                "profile": "http://iiif.io/api/image/2/level1.json",
-                "@context": "http://iiif.io/api/image/2/context.json",
-                "@id": image.url
-              },
-              "height": image.height,
-              "width": image.width,
-              "@id": image.url + "/full/full/0/default.jpg",
-              "@type": "dctypes:Image"
-            },
-            "@id": "https://localhost:8000/manifest/" + manifestID + "/data/annotation/a" + index,
-            "@type": "oa:Annotation"
-          }
-        ],
-        "label": image.label,
-        "width": image.width,
-        "@type": "sc:Canvas",
-        "@id": "https://localhost:8000/manifest/" + manifestID + "/data/canvas/c" + index
-      }
-    return canvas;
-}
-
 const dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
  
 const port = process.env.PORT || 8000;
@@ -238,33 +207,22 @@ app.get('/manifest/:id/data', (req, res) => {
 		// show the collection info
 		var manifest = new Manifest(data.Item); 
 	    res.setHeader('Content-Type', 'application/json');
-	    var canvases = manifest.getImages().map((image, index) => getCanvas(image, index, manifest.getID()));;
-	    var canvas_ids = manifest.getImages().map((image, index) => {return "https://localhost:8000/manifest/" + manifest.getID() + "/data/canvas/c" + index});
-	    var json = {
-	    		"label": manifest.getName(),
-	    		"@type": "sc:Manifest",
-	    		"sequences": [
-	    			{
-		    			"canvases": canvases,
-		    			"label": manifest.getName(),
-		    			"@type": "sc:Sequence",
-		    			"@id": "https://localhost:8000/manifest/" + manifest.getID() + "/data/sequence/s0"
-	    			}
-	    		],
-	    		"structures": [
-	    			{
-	    				"label": manifest.getName(),
-	    				"canvases": canvas_ids,
-	    				"@id": "https://localhost:8000/manifest/" + manifest.getID() + "/data/range/r0"
-	    			}
-	    			],
-				"@id": "https://localhost:8000/manifest/" + manifest.getID() + "/data",
-				"@context": "http://iiif.io/api/presentation/2/context.json"
-	    }
+	    var json = manifest.serializeJSON();
 	    res.send(JSON.stringify(json));
-	    //ejs.render();
 	  }
 	});
+});
+
+app.get('/image', (req, res) => {
+	var url = getInfoURL(req.query.url);
+	axios.get(url)
+		.then(response => {
+			var image = new Image(response.data);
+			res.render('display-image', { metadata: image.getMetadata(), imageID: image.getImageID() });
+		})
+		.catch (error => {
+			console.log(error);
+	})
 });
 
 //Server
