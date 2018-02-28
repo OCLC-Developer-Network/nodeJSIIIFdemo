@@ -1,3 +1,4 @@
+const axios = require("axios");
 module.exports = class Image {
     constructor(data) {
 	    this.manifest = data;
@@ -31,5 +32,17 @@ module.exports = class Image {
     
     getWidth(){
     	return this.width;
+    }
+    
+    static fetchImage(url) {
+        return new Promise(function (resolve, reject) {
+            axios.get(url)
+          		.then(response => {
+          	    	resolve(new Image(response.data));	    	
+          	    })
+          		.catch (error => {
+          			reject(error);
+          		});
+        });
     }
 };

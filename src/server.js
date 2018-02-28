@@ -5,7 +5,6 @@ const uuidv1 = require('uuid/v1');
 
 const dynamodb = require('aws-sdk/clients/dynamodb');
 
-const axios = require("axios");
 const Image = require("./image.js")
 const Manifest = require("./manifest.js")
 
@@ -82,10 +81,9 @@ app.post('/manifest', (req, res) => {
 		res.render('create-manifest', {action: action, url: req.body.url});
 	} else {
 		var url = getInfoURL(req.body.url);
-		axios.get(url)
-			.then(response => {
-		    	var image = new Image(response.data);
-		    	var id = req.body.id;
+		Image.fetchImage(url)
+			.then(image => {
+				var id = req.body.id;
 				var params = {
 					    TableName: "Manifest",
 					    Key: {ManifestID: id},
@@ -103,10 +101,10 @@ app.post('/manifest', (req, res) => {
 				    	res.redirect('/manifest/' + id);
 				    }
 				});
-		    })
-	    	.catch (error => {
-	    		console.log(error);
-	    })
+			})
+			.catch (error => {
+				console.log(error);
+		})
 	}
 });
 
@@ -115,11 +113,9 @@ app.post('/create-manifest', (req, res) => {
 	var name = req.body.name;
 	var description = req.body.description;
 	
-	axios.get(url)
-		.then(response => {
-	    	var image = new Image(response.data);
-	    	var id = uuidv1();
-	    	
+	Image.fetchImage(url)
+		.then(image => {
+			var id = uuidv1();
 	    	//create JSON with the collection name and the first url
 	    	var collection = {
 	    			  TableName: 'Manifest',
@@ -143,8 +139,7 @@ app.post('/create-manifest', (req, res) => {
 	    			  res.redirect('/manifest/' + id);
 	    		  }
 	    	});
-	    	
-	    })
+		})
 		.catch (error => {
 			console.log(error);
 	})
@@ -215,9 +210,8 @@ app.get('/manifest/:id/data', (req, res) => {
 
 app.get('/image', (req, res) => {
 	var url = getInfoURL(req.query.url);
-	axios.get(url)
-		.then(response => {
-			var image = new Image(response.data);
+	Image.fetchImage(url)
+		.then(image => {
 			res.render('display-image', { metadata: image.getMetadata(), imageID: image.getImageID() });
 		})
 		.catch (error => {
