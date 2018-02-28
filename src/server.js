@@ -1,9 +1,6 @@
 "use strict";
 const express = require('express');
 const app = express();
-const uuidv1 = require('uuid/v1');
-
-const dynamodb = require('aws-sdk/clients/dynamodb');
 
 const Image = require("./image.js")
 const Manifest = require("./manifest.js")
@@ -29,8 +26,6 @@ function getImageServiceURL(requestURL) {
 	const url = 'https://sandbox.contentdm.oclc.org/digital/iiif/' + collectionID + '/' + objectID;
 	return url;
 }
-
-const dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
  
 const port = process.env.PORT || 8000;
 const baseUrl = `http://localhost:${port}`;
@@ -55,19 +50,14 @@ app.get('/', (req, res) => {
 	   var action = "manifest";
    }
    
-   var params = {
-		    TableName: "Manifest",
-		    ProjectionExpression: "ManifestID, ManifestName"
-		};
-   
-   dynamodb_doc.scan(params, function(err, data) {
-	   if (err) {
-		   console.log("Error", err);
-	   } else {
-		   // show the collection info
-		   res.render('index', {action: action, manifests: data.Items});
-	   }
-   });
+   Manifest.search()
+   	.then(manifests => {
+   		res.render('index', {action: action, manifests: manifests});
+   	})
+   	.catch(error => {
+   		console.log(error);
+   	})
+
    
 });
 
@@ -84,23 +74,14 @@ app.post('/manifest', (req, res) => {
 		Image.fetchImage(url)
 			.then(image => {
 				var id = req.body.id;
-				var params = {
-					    TableName: "Manifest",
-					    Key: {ManifestID: id},
-					    UpdateExpression: "SET #attrName = list_append(#attrName, :i)",
-					    ExpressionAttributeNames: {"#attrName" : "Images"},
-					    ExpressionAttributeValues:{
-					        ":i": [{label: image.getLabel(), url: image.getImageID(), info_url: image.getID()}]
-					    },
-					    ReturnValues:"UPDATED_NEW"
-					};
-				dynamodb_doc.update(params, function(err, data) {
-				    if (err) {
-				        console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
-				    } else {
-				    	res.redirect('/manifest/' + id);
-				    }
-				});
+				Manifest.update(image, id)
+				.then(id => {
+					res.redirect('/manifest/' + id);
+				})
+			.catch (error => {
+					console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
+			})
+				
 			})
 			.catch (error => {
 				console.log(error);
@@ -115,30 +96,13 @@ app.post('/create-manifest', (req, res) => {
 	
 	Image.fetchImage(url)
 		.then(image => {
-			var id = uuidv1();
-	    	//create JSON with the collection name and the first url
-	    	var collection = {
-	    			  TableName: 'Manifest',
-	    			  Item: {
-	    			    'ManifestID': id,
-	    			    'ManifestName': name,
-	        			'Description': description,	
-	    			    'Images': [
-	    			    	{
-	    			    		'label': image.getLabel(),
-	    			    		'url': image.getImageID(),
-	    			    		'id': image.getID()
-	    			    	}
-	    			    	]
-	    			    }
-	    			};
-	    	dynamodb_doc.put(collection, function(err, data) {
-	    		  if (err) {
-	    			console.log("Error", err);
-	    		  } else {
-	    			  res.redirect('/manifest/' + id);
-	    		  }
-	    	});
+			Manifest.create(image, name, description)
+				.then(id => {
+					res.redirect('/manifest/' + id);
+				})
+				.catch (error => {
+					console.log(error);
+				})
 		})
 		.catch (error => {
 			console.log(error);
@@ -147,65 +111,39 @@ app.post('/create-manifest', (req, res) => {
 
 app.get('/manifest/:id', (req, res) => {
 	var id = req.params['id'];
-	//retrieve the collection
-	var params = {
-	 TableName: 'Manifest',
-	 Key: {ManifestID: id}
-	};
-
-	// Call DynamoDB to read the item from the table
-	dynamodb_doc.get(params, function(err, data) {
-	  if (err) {
-	    console.log("Error", err);
-	  } else {
-		// show the collection info
-		var manifest = new Manifest(data.Item);
-	    res.render('display-manifest', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});
-	  }
-	});
+	Manifest.fetchManifest(id)
+		.then(manifest => {
+			res.render('display-manifest', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});
+		})
+		.catch (error => {
+			console.log(error);
+		})
 });
 
 app.get('/manifest/:id/view', (req, res) => {
 	var id = req.params['id'];
-	//retrieve the collection
-	var params = {
-	 TableName: 'Manifest',
-	 Key: {ManifestID: id}
-	};
-
-	// Call DynamoDB to read the item from the table
-	dynamodb_doc.get(params, function(err, data) {
-	  if (err) {
-	    console.log("Error", err);
-	  } else {
-		// show the collection info
-		var manifest = new Manifest(data.Item);  
-		res.render('display-manifest-images', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});		  
-	  }
-	});
+	Manifest.fetchManifest(id)
+		.then(manifest => {
+			res.render('display-manifest-images', {name: manifest.getName(), description: manifest.getDescription(), images: manifest.getImages()});
+		})
+		.catch (error => {
+			console.log(error);
+		})		
 });
 
 app.get('/manifest/:id/data', (req, res) => {
 	// render the manifest itself
 	var id = req.params['id'];
-	//retrieve the collection
-	var params = {
-	 TableName: 'Manifest',
-	 Key: {ManifestID: id}
-	};
-
-	// Call DynamoDB to read the item from the table
-	dynamodb_doc.get(params, function(err, data) {
-	  if (err) {
-	    console.log("Error", err);
-	  } else {
-		// show the collection info
-		var manifest = new Manifest(data.Item); 
-	    res.setHeader('Content-Type', 'application/json');
-	    var json = manifest.serializeJSON();
-	    res.send(JSON.stringify(json));
-	  }
-	});
+	
+	Manifest.fetchManifest(id)
+		.then(manifest => {
+		    res.setHeader('Content-Type', 'application/json');
+		    var json = manifest.serializeJSON();
+		    res.send(JSON.stringify(json));
+		})
+		.catch (error => {
+			console.log(error);
+		})	
 });
 
 app.get('/image', (req, res) => {
