@@ -1,5 +1,11 @@
 service: my-test-node-app
 
+package:
+  exclude:
+    - api_keys.yml
+    - local.js
+    - .gitignore
+    - .git/**
 provider:
  name: aws
  runtime: nodejs6.10
