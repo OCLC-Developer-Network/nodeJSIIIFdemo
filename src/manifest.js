@@ -1,5 +1,3 @@
-const dynamodb = require('aws-sdk/clients/dynamodb');
-const dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
 const uuidv1 = require('uuid/v1');
 
 module.exports = class Manifest {
@@ -86,6 +84,8 @@ module.exports = class Manifest {
     }
     
     static search(){
+    	var dynamodb = require('aws-sdk/clients/dynamodb');
+    	var dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
     	   var params = {
     			    TableName: "Manifest",
     			    ProjectionExpression: "ManifestID, ManifestName"
@@ -102,6 +102,8 @@ module.exports = class Manifest {
     }
     
     static fetchManifest(id){
+    	var dynamodb = require('aws-sdk/clients/dynamodb');
+    	var dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
     	//retrieve the collection
     	var params = {
     	 TableName: 'Manifest',
@@ -123,6 +125,8 @@ module.exports = class Manifest {
     }
     
     static create(image, name, description){
+    	var dynamodb = require('aws-sdk/clients/dynamodb');
+    	var dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
 		var id = uuidv1();
     	//create JSON with the collection name and the first url
     	var collection = {
@@ -151,7 +155,9 @@ module.exports = class Manifest {
     	});
     }
     
-    static update(image, id){    
+    static update(image, id){  
+    	var dynamodb = require('aws-sdk/clients/dynamodb');
+    	var dynamodb_doc = new dynamodb.DocumentClient({'region': 'us-east-1'});
 		var params = {
 			    TableName: "Manifest",
 			    Key: {ManifestID: id},
